@@ -24,6 +24,8 @@ def create_app():
     from routes.admin_auth import admin_auth_bp
     from routes.saree import saree_bp
     from routes.variety import variety_bp
+    from routes.category import category_bp
+    app.register_blueprint(category_bp)
     app.register_blueprint(variety_bp)
     app.register_blueprint(saree_bp)
     app.register_blueprint(admin_auth_bp)
