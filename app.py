@@ -27,6 +27,8 @@ def create_app():
     from routes.category import category_bp
     from routes.dashboard import dashboard_bp
     from routes.invite import invite_bp
+    from routes.client  import client_bp
+    app.register_blueprint(client_bp)
     app.register_blueprint(invite_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(category_bp)
