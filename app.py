@@ -13,7 +13,7 @@ def create_app():
     CORS(app)
 
     jwt = JWTManager(app)   # 🔑 THIS IS THE FIX
-    CORS(app)
+    # CORS(app)
 
 
     connect(
