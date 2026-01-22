@@ -11,6 +11,7 @@ def create_app():
     app = Flask(__name__)
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
     jwt = JWTManager(app)   # 🔑 THIS IS THE FIX
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
 
     connect(
@@ -28,7 +29,6 @@ def create_app():
 
 
 app = create_app()
-CORS(app)
 
 import os
 
