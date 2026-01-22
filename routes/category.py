@@ -147,3 +147,105 @@ def fetch_sarees_by_category(category_id):
         "total": len(data),
         "data": data
     }), 200
+
+
+
+@category_bp.route("/admin/categories", methods=["GET"])
+@jwt_required()
+def get_categories():
+    # --- Auth Admin ---
+    admin = AdminUser.objects(id=get_jwt_identity()).first()
+    if not admin:
+        return jsonify({"message": "Invalid admin"}), 401
+
+    # --- Query Params ---
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 10))
+    search = request.args.get("search", "").strip()
+
+    sort_by = request.args.get("sort_by", "name")  # name | total_saree_count
+    order = request.args.get("order", "asc")       # asc | desc
+
+    # Safety checks
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 10
+    if per_page > 100:
+        per_page = 100
+
+    # --- Base Query ---
+    query = Category.objects()
+
+    # --- Search Filter ---
+    if search:
+        query = query.filter(name__icontains=search)
+
+    # --- Total Count (before pagination) ---
+    total = query.count()
+    total_pages = math.ceil(total / per_page) if total > 0 else 1
+
+    # --- Sorting ---
+    # MongoEngine sorting supports fields only.
+    # "total_saree_count" is derived, so we will sort manually after fetching a page.
+    if sort_by == "name":
+        mongo_sort = "name" if order == "asc" else "-name"
+        query = query.order_by(mongo_sort)
+
+        # Apply Pagination
+        categories = query.skip((page - 1) * per_page).limit(per_page)
+
+        data = []
+        for c in categories:
+            saree_count = len(c.sarees) if c.sarees else 0
+
+            data.append({
+                "id": str(c.id),
+                "name": c.name,
+                "total_saree_count": saree_count
+            })
+
+        return jsonify({
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+            "data": data
+        }), 200
+
+    # --- Sorting by total_saree_count (manual sorting) ---
+    # For this, we fetch ALL (search filtered), compute counts, then sort in Python.
+    # This is okay for small-medium datasets.
+    if sort_by == "total_saree_count":
+        categories_all = query  # filtered by search already
+
+        data_all = []
+        for c in categories_all:
+            saree_count = len(c.sarees) if c.sarees else 0
+
+            data_all.append({
+                "id": str(c.id),
+                "name": c.name,
+                "total_saree_count": saree_count
+            })
+
+        reverse = True if order == "desc" else False
+        data_all.sort(key=lambda x: x["total_saree_count"], reverse=reverse)
+
+        # Manual pagination
+        start = (page - 1) * per_page
+        end = start + per_page
+        data_page = data_all[start:end]
+
+        return jsonify({
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+            "data": data_page
+        }), 200
+
+    # --- Invalid sort_by fallback ---
+    return jsonify({
+        "message": "Invalid sort_by. Allowed: name, total_saree_count"
+    }), 400
