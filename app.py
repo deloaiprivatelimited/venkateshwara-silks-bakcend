@@ -13,6 +13,8 @@ def create_app():
     )
 
     from routes.admin_user import admin_bp
+    from routes.admin_auth import admin_auth_bp
+    app.register_blueprint(admin_auth_bp)
     app.register_blueprint(admin_bp)
 
     return app
