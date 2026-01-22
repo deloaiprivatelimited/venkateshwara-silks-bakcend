@@ -126,28 +126,6 @@ from mongoengine.errors import DoesNotExist
 from models.category import Category
 from models.saree import Saree
 
-@category_bp.route("/admin/category/<category_id>/sarees", methods=["GET"])
-@jwt_required()
-def fetch_sarees_by_category(category_id):
-    try:
-        category = Category.objects.get(id=category_id)
-    except DoesNotExist:
-        abort(404, "Category not found")
-
-    sarees = category.sarees  # this is already a list of Saree objects
-
-    data = [
-       s.to_json()
-        for s in sarees
-    ]
-
-    return jsonify({
-        "category_id": str(category.id),
-        "category_name": category.name,
-        "total": len(data),
-        "data": data
-    }), 200
-
 import math
 
 @category_bp.route("/admin/categories", methods=["GET"])
@@ -252,28 +230,37 @@ def get_categories():
 
 
 
-
 import math
-from bson import ObjectId
-from flask import request, jsonify
+from flask import request, jsonify, abort
 from flask_jwt_extended import jwt_required
 from mongoengine.queryset.visitor import Q
+from mongoengine.errors import DoesNotExist
 
 from models.saree import Saree
+from models.category import Category
 
-
-@category_bp.route("/admin/category/sarees/picker", methods=["POST"])
+@category_bp.route("/admin/category/<category_id>", methods=["GET"])
 @jwt_required()
-def category_saree_picker():
-    data = request.json or {}
+def get_category_details(category_id):
+    try:
+        category = Category.objects.get(id=category_id)
+    except DoesNotExist:
+        abort(404, "Category not found")
 
-    search = (data.get("search") or "").strip()
-    variety = (data.get("variety") or "").strip()
+    return jsonify({
+        "id": str(category.id),
+        "name": category.name,
+        "saree_ids": [str(s.id) for s in (category.sarees or [])]
+    }), 200
 
-    page = int(data.get("page", 1))
-    per_page = int(data.get("per_page", 10))
+@category_bp.route("/admin/category/<category_id>/sarees/picker", methods=["GET"])
+@jwt_required()
+def category_saree_picker(category_id):
+    search = (request.args.get("search") or "").strip()
+    variety = (request.args.get("variety") or "").strip()
 
-    saree_ids = data.get("saree_ids", [])
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 10))
 
     # Safety
     if page < 1:
@@ -283,51 +270,44 @@ def category_saree_picker():
     if per_page > 100:
         per_page = 100
 
-    if not isinstance(saree_ids, list):
-        return jsonify({"message": "saree_ids must be a list"}), 400
+    # --- Fetch Category ---
+    try:
+        category = Category.objects.get(id=category_id)
+    except DoesNotExist:
+        abort(404, "Category not found")
 
-    # --- Base Query Filters ---
+    selected_ids = [str(s.id) for s in (category.sarees or [])]
+
+    # --- Base Query ---
     query = Q()
     if search:
         query &= Q(name__icontains=search)
     if variety:
         query &= Q(variety=variety)
 
-    # --- Fetch Selected Sarees First ---
+    # --- Selected Sarees First ---
     selected_sarees = []
-    selected_ids_valid = []
-
-    if saree_ids:
-        try:
-            obj_ids = [ObjectId(i) for i in saree_ids]
-        except Exception:
-            return jsonify({"message": "Invalid saree_ids"}), 400
-
-        selected_sarees = list(Saree.objects(query & Q(id__in=obj_ids)))
-
-        # maintain same order as saree_ids given from frontend
+    if selected_ids:
+        selected_sarees = list(Saree.objects(query & Q(id__in=selected_ids)))
         selected_map = {str(s.id): s for s in selected_sarees}
-        selected_sarees = [selected_map[i] for i in saree_ids if i in selected_map]
-
-        selected_ids_valid = [str(s.id) for s in selected_sarees]
+        selected_sarees = [selected_map[i] for i in selected_ids if i in selected_map]
 
     # --- Remaining Sarees (excluding selected) ---
     remaining_query = query
-    if selected_ids_valid:
-        remaining_query &= Q(id__nin=selected_ids_valid)
+    if selected_ids:
+        remaining_query &= Q(id__nin=selected_ids)
 
     remaining_qs = Saree.objects(remaining_query).order_by("name")
 
-    # --- Total Count ---
+    # --- Counts ---
     total_selected = len(selected_sarees)
     total_remaining = remaining_qs.count()
     total = total_selected + total_remaining
     total_pages = math.ceil(total / per_page) if total > 0 else 1
 
-    # --- Pagination (selected first, then remaining) ---
+    # --- Pagination ---
     skip = (page - 1) * per_page
     limit = per_page
-
     page_items = []
 
     # take from selected first
@@ -345,6 +325,8 @@ def category_saree_picker():
         page_items.extend(list(remaining_slice))
 
     return jsonify({
+        "category_id": str(category.id),
+        "category_name": category.name,
         "page": page,
         "per_page": per_page,
         "total": total,
