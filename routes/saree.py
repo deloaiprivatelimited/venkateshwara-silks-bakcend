@@ -114,3 +114,103 @@ def list_sarees():
         "per_page": per_page,
         "data": [s.to_json() for s in sarees]
     }), 200
+
+import math
+from bson import ObjectId
+from flask import request, jsonify
+from flask_jwt_extended import jwt_required
+from mongoengine.queryset.visitor import Q
+
+from models.saree import Saree
+
+
+@category_bp.route("/admin/category/sarees/picker", methods=["POST"])
+@jwt_required()
+def category_saree_picker():
+    data = request.json or {}
+
+    search = (data.get("search") or "").strip()
+    variety = (data.get("variety") or "").strip()
+
+    page = int(data.get("page", 1))
+    per_page = int(data.get("per_page", 10))
+
+    saree_ids = data.get("saree_ids", [])
+
+    # Safety
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 10
+    if per_page > 100:
+        per_page = 100
+
+    if not isinstance(saree_ids, list):
+        return jsonify({"message": "saree_ids must be a list"}), 400
+
+    # --- Base Query Filters ---
+    query = Q()
+    if search:
+        query &= Q(name__icontains=search)
+    if variety:
+        query &= Q(variety=variety)
+
+    # --- Fetch Selected Sarees First ---
+    selected_sarees = []
+    selected_ids_valid = []
+
+    if saree_ids:
+        try:
+            obj_ids = [ObjectId(i) for i in saree_ids]
+        except Exception:
+            return jsonify({"message": "Invalid saree_ids"}), 400
+
+        selected_sarees = list(Saree.objects(query & Q(id__in=obj_ids)))
+
+        # maintain same order as saree_ids given from frontend
+        selected_map = {str(s.id): s for s in selected_sarees}
+        selected_sarees = [selected_map[i] for i in saree_ids if i in selected_map]
+
+        selected_ids_valid = [str(s.id) for s in selected_sarees]
+
+    # --- Remaining Sarees (excluding selected) ---
+    remaining_query = query
+    if selected_ids_valid:
+        remaining_query &= Q(id__nin=selected_ids_valid)
+
+    remaining_qs = Saree.objects(remaining_query).order_by("name")
+
+    # --- Total Count ---
+    total_selected = len(selected_sarees)
+    total_remaining = remaining_qs.count()
+    total = total_selected + total_remaining
+    total_pages = math.ceil(total / per_page) if total > 0 else 1
+
+    # --- Pagination (selected first, then remaining) ---
+    skip = (page - 1) * per_page
+    limit = per_page
+
+    page_items = []
+
+    # take from selected first
+    if skip < total_selected:
+        selected_slice = selected_sarees[skip: skip + limit]
+        page_items.extend(selected_slice)
+        limit -= len(selected_slice)
+        skip = 0
+    else:
+        skip -= total_selected
+
+    # take rest from remaining
+    if limit > 0:
+        remaining_slice = remaining_qs.skip(skip).limit(limit)
+        page_items.extend(list(remaining_slice))
+
+    return jsonify({
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "total_pages": total_pages,
+        "selected_count": total_selected,
+        "data": [s.to_json() for s in page_items]
+    }), 200
