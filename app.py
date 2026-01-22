@@ -23,6 +23,8 @@ def create_app():
     from routes.admin_user import admin_bp
     from routes.admin_auth import admin_auth_bp
     from routes.saree import saree_bp
+    from routes.variety import variety_bp
+    app.register_blueprint(variety_bp)
     app.register_blueprint(saree_bp)
     app.register_blueprint(admin_auth_bp)
     app.register_blueprint(admin_bp)
@@ -33,10 +35,10 @@ def create_app():
 app = create_app()
 
 import os
-
 if __name__ == "__main__":
+    for rule in app.url_map.iter_rules():
+        print(rule, rule.methods)
     app.run(
         host="0.0.0.0",
         port=int(os.getenv("PORT", 5000))
     )
-
