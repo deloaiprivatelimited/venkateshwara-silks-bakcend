@@ -2,11 +2,15 @@ from flask import Flask
 from mongoengine import connect
 from dotenv import load_dotenv
 import os
+from flask_jwt_extended import JWTManager
 
 load_dotenv()
 
 def create_app():
     app = Flask(__name__)
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+    jwt = JWTManager(app)   # 🔑 THIS IS THE FIX
+
 
     connect(
         host=os.getenv("MONGO_URI")
