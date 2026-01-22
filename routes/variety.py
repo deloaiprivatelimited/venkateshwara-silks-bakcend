@@ -38,7 +38,9 @@ def edit_variety(variety_id):
     name = data.get("name")
 
     admin = AdminUser.objects(id=get_jwt_identity()).first()
-    variety = Variety.objects(id=variety_id).first_or_404()
+    variety = Variety.objects(id=variety_id).first()
+    if not variety:
+        return jsonify({"message": "Variety not found"}), 404
 
     variety.name = name
     variety.admin.username = admin.username
