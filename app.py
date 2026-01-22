@@ -25,6 +25,10 @@ def create_app():
     from routes.saree import saree_bp
     from routes.variety import variety_bp
     from routes.category import category_bp
+    from routes.dashboard import dashboard_bp
+    from routes.invite import invite_bp
+    app.register_blueprint(invite_bp)
+    app.register_blueprint(dashboard_bp)
     app.register_blueprint(category_bp)
     app.register_blueprint(variety_bp)
     app.register_blueprint(saree_bp)
