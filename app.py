@@ -3,6 +3,7 @@ from mongoengine import connect
 from dotenv import load_dotenv
 import os
 from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 
 load_dotenv()
 
@@ -27,6 +28,8 @@ def create_app():
 
 
 app = create_app()
+CORS(app)
+
 import os
 
 if __name__ == "__main__":
