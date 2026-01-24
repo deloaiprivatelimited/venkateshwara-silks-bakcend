@@ -4,12 +4,14 @@ from dotenv import load_dotenv
 import os
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-
+import timedelta
 load_dotenv()
 
 def create_app():
     app = Flask(__name__)
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
+
     CORS(app)
 
     jwt = JWTManager(app)   # 🔑 THIS IS THE FIX
