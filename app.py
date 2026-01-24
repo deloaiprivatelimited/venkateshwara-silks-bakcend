@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import os
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-import timedelta
+from datetime import timedelta
 load_dotenv()
 
 def create_app():
