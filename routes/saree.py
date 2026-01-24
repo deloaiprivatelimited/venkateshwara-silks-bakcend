@@ -21,7 +21,7 @@ def add_saree():
         return jsonify({"message": "Variety not found"}), 400
 
     saree = Saree(
-        name=data.get("name"),
+        # name=data.get("name"),
         image_urls=data["image_urls"],
         variety=data["variety"],
         remarks=data.get("remarks"),
