@@ -47,28 +47,28 @@ class Saree(Document):
         self.last_edited_at = datetime.now(timezone.utc)
         return super().save(*args, **kwargs)
 
-   def to_json(self):
-    cloudfront_domain = "https://d34wwgjscxms4y.cloudfront.net"
+    def to_json(self):
+        cloudfront_domain = "https://d34wwgjscxms4y.cloudfront.net"
 
-    updated_image_urls = []
-    for url in self.image_urls:
-        # If already full URL, replace domain
-        if url.startswith("http"):
-            # Extract file path after last '/'
-            file_path = url.split(".com/")[-1] if ".com/" in url else url.split("/")[-1]
-            updated_image_urls.append(f"{cloudfront_domain}/{file_path}")
-        else:
-            # If stored as relative path
-            updated_image_urls.append(f"{cloudfront_domain}/{url}")
+        updated_image_urls = []
+        for url in self.image_urls:
+            # If already full URL, replace domain
+            if url.startswith("http"):
+                # Extract file path after last '/'
+                file_path = url.split(".com/")[-1] if ".com/" in url else url.split("/")[-1]
+                updated_image_urls.append(f"{cloudfront_domain}/{file_path}")
+            else:
+                # If stored as relative path
+                updated_image_urls.append(f"{cloudfront_domain}/{url}")
 
-    return {
-        "id": str(self.id),
-        "name": self.name,
-        "image_urls": updated_image_urls,
-        "variety": self.variety,
-        "remarks": self.remarks,
-        "min_price": self.min_price,
-        "max_price": self.max_price,
-        "status": self.status,
-        "last_edited_at": self.last_edited_at.isoformat()
-    }
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "image_urls": updated_image_urls,
+            "variety": self.variety,
+            "remarks": self.remarks,
+            "min_price": self.min_price,
+            "max_price": self.max_price,
+            "status": self.status,
+            "last_edited_at": self.last_edited_at.isoformat()
+        }
