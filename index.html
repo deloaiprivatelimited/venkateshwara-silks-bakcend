@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask & MongoEngine Interactive Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Syntax Highlighting Base */
+        .code-keyword { color: #c678dd; font-weight: bold; }
+        .code-function { color: #61afef; }
+        .code-string { color: #98c379; }
+        .code-class { color: #e5c07b; }
+        .code-comment { color: #7f848e; font-style: italic; }
+        
+        /* Animation Classes */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Chart Container Strict Styling */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+    <!-- Chosen Palette: Warm Neutrals (Background: #fffbf0, Text: #2d3748, Accents: #d97706/Amber, #4a5568/Slate) -->
+    <!-- Application Structure Plan: 
+         1. Sidebar Navigation: Persistent thematic access (Intro, Setup, Models, Routes, Best Practices).
+         2. Main Dashboard: Dynamic content area.
+         3. Interactive Sections: 
+            - "Schema Builder": Checkbox inputs -> Real-time Code Gen.
+            - "Route Simulator": Buttons -> Visual Data Flow (HTML elements appearing sequentially).
+         4. Analytics: Contextual charts explaining why this stack is chosen.
+         Rationale: Breaks complex backend concepts into visual, interactive chunks for beginners.
+    -->
+    <!-- Visualization & Content Choices:
+         1. Stack Breakdown (Doughnut Chart): Goal -> Context. Interaction -> Tooltip. Library -> Chart.js.
+         2. Framework Comparison (Bar Chart): Goal -> Compare Flask vs Django. Interaction -> Tooltip. Library -> Chart.js.
+         3. Schema Builder (HTML/JS): Goal -> Teach MongoEngine syntax. Interaction -> Real-time code generation. Method -> DOM manipulation.
+         4. Data Flow (HTML/CSS Grid): Goal -> Explain Request/Response cycle. Interaction -> Click to animate steps. Method -> JS Class switching.
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-[#fffbf0] text-slate-800 font-sans antialiased h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Mobile Header -->
+    <header class="md:hidden bg-white border-b border-orange-100 p-4 flex justify-between items-center z-20">
+        <h1 class="text-lg font-bold text-slate-800"><i class="fas fa-flask text-orange-500 mr-2"></i>Backend Guide</h1>
+        <button id="mobile-menu-btn" class="text-slate-600 focus:outline-none">
+            <i class="fas fa-bars text-xl"></i>
+        </button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <nav id="sidebar" class="transform -translate-x-full md:translate-x-0 fixed md:relative z-10 w-64 h-full bg-white border-r border-orange-100 flex flex-col transition-transform duration-300 shadow-lg md:shadow-none">
+        <div class="p-6 border-b border-orange-50 hidden md:block">
+            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">
+                <i class="fas fa-flask text-orange-500 mr-2"></i>Flask<span class="text-orange-500">Engine</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-2">Beginner's Interactive Manual</p>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1 px-3">
+                <li>
+                    <button onclick="navTo('section-intro')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-orange-50 text-slate-600 transition-colors group active-nav-btn" data-target="section-intro">
+                        <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors"><i class="fas fa-lightbulb"></i></span>
+                        <span class="font-medium">Introduction</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="navTo('section-setup')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-orange-50 text-slate-600 transition-colors group" data-target="section-setup">
+                        <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors"><i class="fas fa-terminal"></i></span>
+                        <span class="font-medium">Setup & Config</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="navTo('section-models')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-orange-50 text-slate-600 transition-colors group" data-target="section-models">
+                        <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors"><i class="fas fa-database"></i></span>
+                        <span class="font-medium">Models (The Schema)</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="navTo('section-crud')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-orange-50 text-slate-600 transition-colors group" data-target="section-crud">
+                        <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors"><i class="fas fa-exchange-alt"></i></span>
+                        <span class="font-medium">Routes & CRUD</span>
+                    </button>
+                </li>
+                 <li>
+                    <button onclick="navTo('section-json')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-orange-50 text-slate-600 transition-colors group" data-target="section-json">
+                        <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors"><i class="fas fa-code"></i></span>
+                        <span class="font-medium">JSON Serialization</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="p-4 border-t border-orange-50">
+            <div class="bg-orange-50 rounded-lg p-4">
+                <p class="text-xs font-semibold text-orange-800 uppercase mb-1">Status</p>
+                <div class="flex items-center justify-between text-sm">
+                    <span id="progress-text">0% Complete</span>
+                    <i class="fas fa-trophy text-orange-400"></i>
+                </div>
+                <div class="w-full bg-orange-200 rounded-full h-1.5 mt-2">
+                    <div id="progress-bar" class="bg-orange-500 h-1.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-[#fffbf0] relative" id="main-scroll">
+        
+        <!-- SECTION 1: INTRODUCTION -->
+        <section id="section-intro" class="content-section max-w-5xl mx-auto fade-in">
+            <div class="mb-8">
+                <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold tracking-wide uppercase">Module 1</span>
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mt-2 mb-4">Why Flask & MongoEngine?</h2>
+                <p class="text-lg text-slate-600 leading-relaxed">
+                    Welcome to backend development. This guide focuses on building RESTful APIs using <strong>Flask</strong> (a lightweight Python web framework) and <strong>MongoEngine</strong> (an Object-Document Mapper for MongoDB). This combination is perfect for beginners because it merges Python's readability with the flexibility of a NoSQL database.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <!-- Stack Context Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-orange-100">
+                    <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center">
+                        <i class="fas fa-layer-group text-orange-500 mr-2"></i> The Backend Stack
+                    </h3>
+                    <p class="text-sm text-slate-500 mb-4">Where do these tools fit in the ecosystem?</p>
+                    <div class="chart-container">
+                        <canvas id="stackChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Comparison Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-orange-100">
+                    <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center">
+                        <i class="fas fa-balance-scale text-orange-500 mr-2"></i> Flask vs. Django
+                    </h3>
+                    <p class="text-sm text-slate-500 mb-4">Why we choose Flask for starting out.</p>
+                    <div class="chart-container">
+                        <canvas id="compareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-6 border-l-4 border-orange-500 shadow-sm">
+                <h3 class="font-bold text-lg mb-2">Key Concepts</h3>
+                <ul class="space-y-2 text-slate-600">
+                    <li class="flex items-start"><i class="fas fa-check text-green-500 mt-1 mr-3"></i> <span><strong>Flask:</strong> Handles the web server, routes (URLs), and HTTP requests/responses.</span></li>
+                    <li class="flex items-start"><i class="fas fa-check text-green-500 mt-1 mr-3"></i> <span><strong>MongoDB:</strong> A NoSQL database that stores data in JSON-like documents. Flexible and scalable.</span></li>
+                    <li class="flex items-start"><i class="fas fa-check text-green-500 mt-1 mr-3"></i> <span><strong>MongoEngine:</strong> An ODM that lets you define data models as Python classes, mapping them to MongoDB documents automatically.</span></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION 2: SETUP -->
+        <section id="section-setup" class="content-section max-w-5xl mx-auto hidden fade-in">
+            <div class="mb-8">
+                <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold tracking-wide uppercase">Module 2</span>
+                <h2 class="text-3xl font-bold text-slate-800 mt-2 mb-4">Environment Setup</h2>
+                <p class="text-slate-600 mb-6">Before writing code, we need to install the necessary libraries. In the backend world, we use a <strong>Virtual Environment</strong> to keep dependencies isolated.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Step 1 -->
+                <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg">
+                    <div class="bg-slate-800 px-4 py-2 flex justify-between items-center">
+                        <span class="text-slate-400 text-xs font-mono">Terminal / Command Prompt</span>
+                        <div class="flex space-x-1.5">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                    </div>
+                    <div class="p-6 font-mono text-sm text-slate-300 space-y-4">
+                        <div>
+                            <p class="text-slate-500 mb-1"># 1. Create a virtual environment</p>
+                            <p><span class="text-green-400">python</span> -m venv venv</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-500 mb-1"># 2. Activate it (Windows)</p>
+                            <p>venv\Scripts\activate</p>
+                            <p class="text-slate-500 mt-1"># OR (Mac/Linux)</p>
+                            <p>source venv/bin/activate</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-500 mb-1"># 3. Install Flask & MongoEngine</p>
+                            <p><span class="text-green-400">pip</span> install flask flask-mongoengine</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Code -->
+                <div class="bg-white rounded-xl p-6 border border-orange-100 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-800 mb-2">The Basic App Structure (app.py)</h3>
+                        <p class="text-sm text-slate-500 mb-4">This is the minimal code required to connect Flask to a local MongoDB instance.</p>
+                        
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 font-mono text-sm overflow-x-auto">
+<pre>
+<span class="code-keyword">from</span> flask <span class="code-keyword">import</span> Flask, jsonify
+<span class="code-keyword">from</span> flask_mongoengine <span class="code-keyword">import</span> MongoEngine
+
+app = Flask(__name__)
+
+<span class="code-comment"># MongoDB Configuration</span>
+app.config[<span class="code-string">'MONGODB_SETTINGS'</span>] = {
+    <span class="code-string">'db'</span>: <span class="code-string">'my_database'</span>,
+    <span class="code-string">'host'</span>: <span class="code-string">'localhost'</span>,
+    <span class="code-string">'port'</span>: 27017
+}
+
+db = MongoEngine(app)
+
+<span class="code-keyword">if</span> __name__ == <span class="code-string">"__main__"</span>:
+    app.run(debug=<span class="code-keyword">True</span>)
+</pre>
+                        </div>
+                    </div>
+                    <div class="mt-4 bg-orange-50 p-3 rounded text-sm text-orange-800">
+                        <i class="fas fa-info-circle mr-2"></i> Ensure MongoDB Community Server is installed and running on your machine!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: MODELS (INTERACTIVE) -->
+        <section id="section-models" class="content-section max-w-6xl mx-auto hidden fade-in">
+            <div class="mb-8">
+                <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold tracking-wide uppercase">Module 3</span>
+                <h2 class="text-3xl font-bold text-slate-800 mt-2 mb-4">Defining Models</h2>
+                <p class="text-slate-600 mb-4">In MongoEngine, a <strong>Document</strong> class represents a collection in MongoDB. Use the interactive builder below to define a `User` model and see how the Python code generates automatically.</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden flex flex-col lg:flex-row h-auto lg:h-[500px]">
+                <!-- Left: Builder Controls -->
+                <div class="lg:w-1/3 bg-slate-50 p-6 border-r border-slate-200 overflow-y-auto">
+                    <h3 class="font-bold text-slate-700 mb-4">Model Builder</h3>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-white rounded border border-slate-200 hover:shadow-md transition-shadow cursor-pointer" onclick="toggleField('name')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="check-name" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-500">
+                                    <span class="ml-2 font-mono text-sm font-bold">name</span>
+                                </div>
+                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">StringField</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1 pl-6">Stores text. Required=True ensures it's not empty.</p>
+                        </div>
+
+                        <div class="p-3 bg-white rounded border border-slate-200 hover:shadow-md transition-shadow cursor-pointer" onclick="toggleField('email')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="check-email" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-500">
+                                    <span class="ml-2 font-mono text-sm font-bold">email</span>
+                                </div>
+                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">EmailField</span>
+                            </div>
+                             <p class="text-xs text-slate-500 mt-1 pl-6">Validates email format. Unique=True prevents duplicates.</p>
+                        </div>
+
+                        <div class="p-3 bg-white rounded border border-slate-200 hover:shadow-md transition-shadow cursor-pointer" onclick="toggleField('age')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="check-age" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-500">
+                                    <span class="ml-2 font-mono text-sm font-bold">age</span>
+                                </div>
+                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">IntField</span>
+                            </div>
+                             <p class="text-xs text-slate-500 mt-1 pl-6">Stores whole numbers. Min_value can be set.</p>
+                        </div>
+
+                        <div class="p-3 bg-white rounded border border-slate-200 hover:shadow-md transition-shadow cursor-pointer" onclick="toggleField('roles')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="check-roles" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-500">
+                                    <span class="ml-2 font-mono text-sm font-bold">roles</span>
+                                </div>
+                                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ListField</span>
+                            </div>
+                             <p class="text-xs text-slate-500 mt-1 pl-6">Stores a list of items (e.g., ['admin', 'editor']).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Generated Code -->
+                <div class="lg:w-2/3 bg-[#282c34] p-6 text-sm relative overflow-y-auto">
+                    <div class="absolute top-4 right-4 text-slate-400 text-xs uppercase tracking-wider">models.py</div>
+                    <pre class="font-mono text-slate-300 leading-relaxed" id="code-output">
+<span class="code-keyword">class</span> <span class="code-class">User</span>(db.Document):
+    <span class="code-comment"># Default collection name will be 'user'</span>
+    
+    <span class="code-comment"># Select fields from the left to populate this model...</span>
+</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: CRUD SIMULATOR -->
+        <section id="section-crud" class="content-section max-w-6xl mx-auto hidden fade-in">
+            <div class="mb-8">
+                <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold tracking-wide uppercase">Module 4</span>
+                <h2 class="text-3xl font-bold text-slate-800 mt-2 mb-4">Routes & CRUD Operations</h2>
+                <p class="text-slate-600 mb-6">Interact with the API endpoints below to understand how Flask routes map to MongoEngine database operations. Select an HTTP method to start.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Method Selection -->
+                <div class="lg:col-span-3 space-y-3">
+                    <button onclick="simulateRoute('POST')" class="w-full text-left p-4 rounded-lg bg-green-50 border border-green-200 hover:bg-green-100 transition-colors group focus:ring-2 focus:ring-green-400">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-green-700">POST</span>
+                            <span class="text-xs text-green-600 bg-white px-2 py-1 rounded border border-green-200">Create</span>
+                        </div>
+                        <p class="text-xs text-green-800 mt-1 opacity-75">/users</p>
+                    </button>
+                    <button onclick="simulateRoute('GET')" class="w-full text-left p-4 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors group focus:ring-2 focus:ring-blue-400">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-blue-700">GET</span>
+                            <span class="text-xs text-blue-600 bg-white px-2 py-1 rounded border border-blue-200">Read</span>
+                        </div>
+                        <p class="text-xs text-blue-800 mt-1 opacity-75">/users</p>
+                    </button>
+                    <button onclick="simulateRoute('PUT')" class="w-full text-left p-4 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors group focus:ring-2 focus:ring-orange-400">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-orange-700">PUT</span>
+                            <span class="text-xs text-orange-600 bg-white px-2 py-1 rounded border border-orange-200">Update</span>
+                        </div>
+                        <p class="text-xs text-orange-800 mt-1 opacity-75">/users/&lt;id&gt;</p>
+                    </button>
+                    <button onclick="simulateRoute('DELETE')" class="w-full text-left p-4 rounded-lg bg-red-50 border border-red-200 hover:bg-red-100 transition-colors group focus:ring-2 focus:ring-red-400">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-red-700">DELETE</span>
+                            <span class="text-xs text-red-600 bg-white px-2 py-1 rounded border border-red-200">Delete</span>
+                        </div>
+                        <p class="text-xs text-red-800 mt-1 opacity-75">/users/&lt;id&gt;</p>
+                    </button>
+                </div>
+
+                <!-- Interactive Visualization Board -->
+                <div class="lg:col-span-9 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div id="simulation-placeholder" class="h-96 flex flex-col items-center justify-center text-slate-400 text-center">
+                        <i class="fas fa-hand-pointer text-4xl mb-3 animate-bounce"></i>
+                        <p>Select a method on the left<br>to visualize the backend logic.</p>
+                    </div>
+
+                    <div id="simulation-content" class="hidden">
+                        <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                            <h3 class="font-bold text-lg" id="sim-title">POST Request</h3>
+                            <span class="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600" id="sim-url">http://api.app/users</span>
+                        </div>
+
+                        <!-- The Code Implementation -->
+                        <div class="mb-6 bg-slate-900 rounded-lg p-4 shadow-inner overflow-x-auto">
+                            <pre class="font-mono text-sm text-slate-300" id="sim-code"></pre>
+                        </div>
+
+                        <!-- Data Flow Visualization -->
+                        <div class="relative bg-slate-50 rounded-lg p-6 border border-slate-200 mt-4">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Data Flow</h4>
+                            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                                <!-- Client -->
+                                <div class="flex-1 text-center p-3 bg-white border border-slate-200 rounded shadow-sm w-full">
+                                    <div class="text-xs text-slate-400 uppercase font-bold mb-1">Client</div>
+                                    <div class="font-mono text-xs bg-slate-100 p-2 rounded text-left" id="flow-client">{"name": "Alice"}</div>
+                                </div>
+                                <i class="fas fa-arrow-right text-slate-300 transform rotate-90 md:rotate-0"></i>
+                                
+                                <!-- Server Logic -->
+                                <div class="flex-1 text-center p-3 bg-orange-50 border border-orange-200 rounded shadow-sm w-full">
+                                    <div class="text-xs text-orange-400 uppercase font-bold mb-1">Flask + MongoEngine</div>
+                                    <div class="text-sm font-bold text-orange-700" id="flow-logic">user.save()</div>
+                                </div>
+                                <i class="fas fa-arrow-right text-slate-300 transform rotate-90 md:rotate-0"></i>
+
+                                <!-- Database -->
+                                <div class="flex-1 text-center p-3 bg-green-50 border border-green-200 rounded shadow-sm w-full">
+                                    <div class="text-xs text-green-400 uppercase font-bold mb-1">MongoDB</div>
+                                    <div class="text-xs text-green-700" id="flow-db">Inserted _id: ObjectId(...)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+         <!-- SECTION 5: JSON Serialization -->
+         <section id="section-json" class="content-section max-w-5xl mx-auto hidden fade-in">
+            <div class="mb-8">
+                <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold tracking-wide uppercase">Module 5</span>
+                <h2 class="text-3xl font-bold text-slate-800 mt-2 mb-4">Returning JSON</h2>
+                <p class="text-slate-600 mb-6">MongoEngine objects are Python classes. They aren't automatically JSON serializable. You must convert them before sending a response.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl border border-orange-100 shadow-sm">
+                    <h3 class="font-bold text-red-600 mb-2"><i class="fas fa-times-circle mr-2"></i>The Wrong Way</h3>
+                    <p class="text-sm text-slate-500 mb-3">Trying to return the object directly causes a TypeError.</p>
+                    <div class="bg-slate-100 p-3 rounded text-sm font-mono text-slate-700">
+                        @app.route('/user')<br>
+                        def get_user():<br>
+                        &nbsp;&nbsp;user = User.objects.first()<br>
+                        &nbsp;&nbsp;<span class="text-red-500 line-through">return jsonify(user)</span> <span class="text-red-500 font-bold"># Error!</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-green-100 shadow-sm">
+                    <h3 class="font-bold text-green-600 mb-2"><i class="fas fa-check-circle mr-2"></i>The Right Way (to_json)</h3>
+                    <p class="text-sm text-slate-500 mb-3">Use the built-in `.to_json()` method or create a custom dict.</p>
+                    <div class="bg-slate-100 p-3 rounded text-sm font-mono text-slate-700">
+                        @app.route('/user')<br>
+                        def get_user():<br>
+                        &nbsp;&nbsp;user = User.objects.first()<br>
+                        &nbsp;&nbsp;<span class="text-green-600 font-bold">return user.to_json()</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 bg-blue-50 p-6 rounded-xl border border-blue-100">
+                <h3 class="font-bold text-blue-800 mb-2">Pro Tip: Custom Dictionary</h3>
+                <p class="text-sm text-blue-700 mb-4">For full control over the API response (e.g., hiding passwords), convert manually:</p>
+                <div class="bg-white p-4 rounded border border-blue-200 font-mono text-sm text-slate-700">
+<pre>
+<span class="code-keyword">def</span> <span class="code-function">user_to_dict</span>(user):
+    <span class="code-keyword">return</span> {
+        <span class="code-string">"id"</span>: str(user.id),
+        <span class="code-string">"name"</span>: user.name,
+        <span class="code-string">"email"</span>: user.email
+        <span class="code-comment"># password is excluded here</span>
+    }
+</pre>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JS Logic -->
+    <script>
+        // State Management
+        const state = {
+            currentSection: 'section-intro',
+            progress: 0,
+            modelFields: {
+                name: false,
+                email: false,
+                age: false,
+                roles: false
+            }
+        };
+
+        // Initialize Charts
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            updateModelCode(); // Init empty model
+        });
+
+        // Navigation Logic
+        function navTo(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(el => {
+                el.classList.add('hidden');
+            });
+            
+            // Show target
+            document.getElementById(sectionId).classList.remove('hidden');
+            
+            // Update Active State
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-orange-50', 'text-orange-700', 'active-nav-btn');
+                btn.querySelector('span').classList.remove('bg-orange-100', 'text-orange-600');
+                if(btn.dataset.target === sectionId) {
+                    btn.classList.add('bg-orange-50', 'text-orange-700', 'active-nav-btn');
+                    btn.querySelector('span').classList.add('bg-orange-100', 'text-orange-600');
+                }
+            });
+
+            // Mobile menu close
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
+                sidebar.classList.add('-translate-x-full');
+            }
+
+            // Update Progress
+            updateProgress(sectionId);
+            
+            // Scroll to top
+            document.getElementById('main-scroll').scrollTop = 0;
+        }
+
+        function updateProgress(sectionId) {
+            const sections = ['section-intro', 'section-setup', 'section-models', 'section-crud', 'section-json'];
+            const idx = sections.indexOf(sectionId);
+            const val = Math.round(((idx + 1) / sections.length) * 100);
+            
+            if (val > state.progress) {
+                state.progress = val;
+                document.getElementById('progress-bar').style.width = `${val}%`;
+                document.getElementById('progress-text').innerText = `${val}% Complete`;
+            }
+        }
+
+        // Mobile Menu Toggle
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        // --- CHART JS IMPLEMENTATION ---
+        function initCharts() {
+            // Stack Chart
+            const ctxStack = document.getElementById('stackChart').getContext('2d');
+            new Chart(ctxStack, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Language (Python)', 'Framework (Flask)', 'Database (MongoDB)', 'ODM (MongoEngine)'],
+                    datasets: [{
+                        data: [25, 25, 25, 25],
+                        backgroundColor: ['#e5c07b', '#61afef', '#98c379', '#c678dd'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Comparison Chart
+            const ctxComp = document.getElementById('compareChart').getContext('2d');
+            new Chart(ctxComp, {
+                type: 'bar',
+                data: {
+                    labels: ['Boilerplate Code', 'Learning Curve', 'Flexibility'],
+                    datasets: [
+                        {
+                            label: 'Flask (Micro)',
+                            data: [2, 3, 9],
+                            backgroundColor: '#61afef'
+                        },
+                        {
+                            label: 'Django (Macro)',
+                            data: [8, 8, 4],
+                            backgroundColor: '#e06c75'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 10 }
+                    }
+                }
+            });
+        }
+
+        // --- MODEL BUILDER LOGIC ---
+        function toggleField(field) {
+            // Toggle state
+            state.modelFields[field] = !state.modelFields[field];
+            
+            // Update checkbox visual
+            const checkbox = document.getElementById(`check-${field}`);
+            checkbox.checked = state.modelFields[field];
+            
+            // Regenerate Code
+            updateModelCode();
+        }
+
+        function updateModelCode() {
+            let code = `<span class="code-keyword">class</span> <span class="code-class">User</span>(db.Document):\n`;
+            
+            // Default check if empty
+            const keys = Object.keys(state.modelFields);
+            const active = keys.filter(k => state.modelFields[k]);
+            
+            if (active.length === 0) {
+                code += `    <span class="code-comment"># Select fields from the left...</span>`;
+            } else {
+                if (state.modelFields.name) {
+                    code += `    name = db.StringField(required=<span class="code-keyword">True</span>)\n`;
+                }
+                if (state.modelFields.email) {
+                    code += `    email = db.EmailField(unique=<span class="code-keyword">True</span>)\n`;
+                }
+                if (state.modelFields.age) {
+                    code += `    age = db.IntField(min_value=0)\n`;
+                }
+                if (state.modelFields.roles) {
+                    code += `    roles = db.ListField(db.StringField(), default=[<span class="code-string">'user'</span>])\n`;
+                }
+            }
+            
+            document.getElementById('code-output').innerHTML = code;
+        }
+
+        // --- ROUTE SIMULATOR LOGIC ---
+        const routeData = {
+            'POST': {
+                title: 'Create User',
+                url: 'POST /users',
+                code: `<span class="code-string">@app.route</span>(<span class="code-string">'/users'</span>, methods=[<span class="code-string">'POST'</span>])
+<span class="code-keyword">def</span> <span class="code-function">create_user</span>():
+    data = request.get_json()
+    user = User(
+        name=data[<span class="code-string">'name'</span>],
+        email=data[<span class="code-string">'email'</span>]
+    )
+    user.save() <span class="code-comment"># Saves to MongoDB</span>
+    <span class="code-keyword">return</span> jsonify(user), 201`,
+                client: '{"name": "Alice", "email": "alice@ex.com"}',
+                logic: 'Instantiate -> .save()',
+                db: 'Insert Document'
+            },
+            'GET': {
+                title: 'Get Users',
+                url: 'GET /users',
+                code: `<span class="code-string">@app.route</span>(<span class="code-string">'/users'</span>, methods=[<span class="code-string">'GET'</span>])
+<span class="code-keyword">def</span> <span class="code-function">get_users</span>():
+    users = User.objects() <span class="code-comment"># Fetch all</span>
+    <span class="code-keyword">return</span> jsonify(users)`,
+                client: '(Empty Body)',
+                logic: 'User.objects()',
+                db: 'Find {}'
+            },
+            'PUT': {
+                title: 'Update User',
+                url: 'PUT /users/<id>',
+                code: `<span class="code-string">@app.route</span>(<span class="code-string">'/users/&lt;id&gt;'</span>, methods=[<span class="code-string">'PUT'</span>])
+<span class="code-keyword">def</span> <span class="code-function">update_user</span>(id):
+    data = request.get_json()
+    user = User.objects(id=id).first()
+    user.update(name=data[<span class="code-string">'name'</span>])
+    <span class="code-keyword">return</span> jsonify(user)`,
+                client: '{"name": "Alice Cooper"}',
+                logic: '.update()',
+                db: 'Update One {_id: ...}'
+            },
+            'DELETE': {
+                title: 'Delete User',
+                url: 'DELETE /users/<id>',
+                code: `<span class="code-string">@app.route</span>(<span class="code-string">'/users/&lt;id&gt;'</span>, methods=[<span class="code-string">'DELETE'</span>])
+<span class="code-keyword">def</span> <span class="code-function">delete_user</span>(id):
+    user = User.objects(id=id).first()
+    user.delete()
+    <span class="code-keyword">return</span> jsonify({<span class="code-string">"msg"</span>: <span class="code-string">"Deleted"</span>})`,
+                client: '(ID in URL)',
+                logic: '.delete()',
+                db: 'Delete One {_id: ...}'
+            }
+        };
+
+        function simulateRoute(method) {
+            const data = routeData[method];
+            
+            // Hide placeholder, show content
+            document.getElementById('simulation-placeholder').classList.add('hidden');
+            const content = document.getElementById('simulation-content');
+            content.classList.remove('hidden');
+            content.classList.remove('fade-in');
+            void content.offsetWidth; // Trigger reflow
+            content.classList.add('fade-in');
+
+            // Populate Data
+            document.getElementById('sim-title').innerText = data.title;
+            document.getElementById('sim-url').innerText = data.url;
+            document.getElementById('sim-code').innerHTML = data.code;
+            document.getElementById('flow-client').innerText = data.client;
+            document.getElementById('flow-logic').innerText = data.logic;
+            document.getElementById('flow-db').innerText = data.db;
+        }
+
+    </script>
+</body>
+</html>

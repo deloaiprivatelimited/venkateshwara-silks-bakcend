@@ -18,9 +18,13 @@ def create_app():
     # CORS(app)
 
 
+    import certifi
+
     connect(
-        host=os.getenv("MONGO_URI")
+        host=os.getenv("MONGO_URI"),
+        tlsCAFile=certifi.where()
     )
+
 
     from routes.admin_user import admin_bp
     from routes.admin_auth import admin_auth_bp
