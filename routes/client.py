@@ -1,15 +1,33 @@
 from flask import Blueprint, request, jsonify
 from models.saree import Saree
 from models.variety import Variety
+from models.invite_token import CategoryInviteToken
+from models.category import Category
 from mongoengine.errors import DoesNotExist, ValidationError
 
 client_bp = Blueprint("client", __name__)
+
+
+def get_allowed_categories(token):
+    """Get list of category IDs from a category invite token, or None if token is not category-based"""
+    if not token:
+        return None
+    
+    invites = CategoryInviteToken.objects(token=token, is_active=True)
+    if invites:
+        return [str(invite.category.id) for invite in invites]
+    
+    return None
 
 @client_bp.route("/client/sarees", methods=["GET", "OPTIONS"])
 def list_sarees():
     # Pagination
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 12))
+    
+    # ✅ Optional token for category filtering
+    token = request.args.get("token")
+    allowed_categories = get_allowed_categories(token)
 
     # ✅ Filters
     # Old: ?variety=Silk
@@ -26,6 +44,10 @@ def list_sarees():
     max_price = request.args.get("max_price")
 
     query = Saree.objects(status="published")
+
+    # ✅ Filter by allowed categories if token is provided
+    if allowed_categories:
+        query = query.filter(category__in=allowed_categories)
 
     # ✅ Multiple varieties filter (OR)
     if varieties:
@@ -60,12 +82,25 @@ def list_sarees():
 
 @client_bp.route("/client/varieties", methods=["GET", "OPTIONS"])
 def list_varieties():
-    varieties = Variety.objects.only("name")
-
-    return jsonify([
-        {"id": str(v.id), "name": v.name}
-        for v in varieties
-    ]), 200
+    # ✅ Optional token for category filtering
+    token = request.args.get("token")
+    allowed_categories = get_allowed_categories(token)
+    
+    # Query sarees based on category filter
+    saree_query = Saree.objects(status="published")
+    
+    if allowed_categories:
+        saree_query = saree_query.filter(category__in=allowed_categories)
+    
+    # Get unique varieties from filtered sarees
+    sarees = saree_query.only("variety")
+    unique_varieties = set()
+    for saree in sarees:
+        if saree.variety:
+            unique_varieties.add(saree.variety)
+    
+    # Return varieties
+    return jsonify([{"name": v} for v in sorted(unique_varieties)]), 200
 
 
 @client_bp.route("/client/sarees/<string:saree_id>", methods=["GET", "OPTIONS"])

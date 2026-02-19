@@ -34,8 +34,10 @@ def create_app():
     from routes.dashboard import dashboard_bp
     from routes.invite import invite_bp
     from routes.client  import client_bp
+    from routes.category_invite_routes import category_invite_bp
     app.register_blueprint(client_bp)
     app.register_blueprint(invite_bp)
+    app.register_blueprint(category_invite_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(category_bp)
     app.register_blueprint(variety_bp)
